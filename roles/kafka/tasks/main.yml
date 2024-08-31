@@ -1,0 +1,18 @@
+---
+- name: Copy Kafka Docker Compose file
+  template:
+    src: kafka-docker-compose.yml
+    dest: /opt/kafka-docker-compose.yml
+    mode: '0644'
+
+- name: Start Kafka service
+  shell: docker compose -f /opt/kafka-docker-compose.yml up -d
+  args:
+    chdir: /opt
+
+- name: Wait for Kafka to be ready
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ kafka_port }}"
+    state: started
+    timeout: 300

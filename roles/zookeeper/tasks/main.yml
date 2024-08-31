@@ -1,0 +1,40 @@
+---
+- name: Copy Zookeeper Docker Compose file
+  template:
+    src: zookeeper-docker-compose.yml
+    dest: /opt/zookeeper-docker-compose.yml
+    mode: '0644'
+
+- name: Create Zookeeper data directory
+  file:
+    path: "{{ zookeeper_data_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create Zookeeper datalog directory
+  file:
+    path: "{{ zookeeper_datalog_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create myid file
+  copy:
+    content: "{{ groups['zookeeper'].index(inventory_hostname) + 1 }}"
+    dest: "{{ zookeeper_data_dir }}/myid"
+    mode: '0644'
+
+- name: Start Zookeeper service
+  shell: docker compose -f /opt/zookeeper-docker-compose.yml up -d
+  args:
+    chdir: /opt
+
+- name: Wait for Zookeeper container to start
+  shell: docker compose -f /opt/zookeeper-docker-compose.yml ps -q zookeeper | xargs docker inspect -f '{{ '{{' }}.State.Status{{ '}}' }}'
+  register: zookeeper_status
+  until: zookeeper_status.stdout == "running"
+  retries: 10
+  delay: 5
+
+- name: Pause for 60 seconds to allow Zookeeper to initialize
+  pause:
+    seconds: 60

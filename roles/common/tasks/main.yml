@@ -1,0 +1,59 @@
+---
+- name: Install required packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
+      - netcat
+    state: present
+    update_cache: yes
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    state: present
+
+- name: Install Docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+    update_cache: yes
+
+- name: Install Docker Compose
+  get_url:
+    url: https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: '0755'
+
+- name: Create directories for Zookeeper and Kafka
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0777'
+  loop:
+    - "{{ zookeeper_data_dir }}"
+    - "{{ zookeeper_datalog_dir }}"
+    - /opt/kafka/data
+
+- name: Download JMX Prometheus Java Agent
+  get_url:
+    url: https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.16.1/jmx_prometheus_javaagent-0.16.1.jar
+    dest: /opt/jmx_prometheus_javaagent-0.16.1.jar
+    mode: '0644'
+
+- name: Copy Prometheus config file
+  template:
+    src: prometheus-config.yml
+    dest: /opt/prometheus-config.yml
+    mode: '0644'

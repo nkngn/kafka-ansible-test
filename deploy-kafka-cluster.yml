@@ -1,0 +1,39 @@
+---
+- name: Prompt for Kafka heap size configuration
+  hosts: localhost
+  gather_facts: false
+  vars_prompt:
+    - name: "configure_heap"
+      prompt: "Do you want to configure Kafka heap size? (yes/no)"
+      private: no
+
+  tasks:
+    - name: Set kafka_heap_opts fact based on user input
+      set_fact:
+        kafka_heap_opts: ""
+      when: configure_heap | lower != 'yes'
+
+    - name: Prompt for Kafka heap size if needed
+      pause:
+        prompt: "Enter Kafka heap size (e.g., 2G, 4G): "
+      register: user_heap_size
+      when: configure_heap | lower == 'yes'
+
+    - name: Set kafka_heap_opts fact based on heap size configuration
+      set_fact:
+        kafka_heap_opts: "-Xmx{{ user_heap_size.user_input }} -Xms{{ user_heap_size.user_input }}"
+      when: configure_heap | lower == 'yes'
+
+    - name: Debug kafka_heap_opts
+      debug:
+        var: kafka_heap_opts
+
+- import_playbook: setup-zookeeper.yml
+
+- hosts: kafka
+  become: yes
+  vars:
+    kafka_heap_opts: "{{ hostvars['localhost']['kafka_heap_opts'] }}"
+  roles:
+    - common
+    - kafka

@@ -1,0 +1,11 @@
+---
+- hosts: zookeeper
+  become: yes
+  roles:
+    - common
+    - zookeeper
+
+- hosts: zookeeper
+  become: yes
+  tasks:
+    - include_tasks: roles/zookeeper/tasks/check_cluster.yml
